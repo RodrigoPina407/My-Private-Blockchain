@@ -70,7 +70,7 @@ class Blockchain {
            let newHeight = chainHeight + 1;
 
            if(newHeight === 2){
-             //force an invalid block
+             //force an invalid block to test validateChain()
             let previousBlock =await self.getBlockByHeight(chainHeight);
             block.previousBlockHash = await SHA256(JSON.stringify(block)).toString();
             block.height = newHeight;
