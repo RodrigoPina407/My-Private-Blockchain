@@ -69,7 +69,17 @@ class Blockchain {
            let chainHeight = await self.getChainHeight();
            let newHeight = chainHeight + 1;
 
-           if(newHeight > 0){
+           if(newHeight === 2){
+             //force an invalid block
+            let previousBlock =await self.getBlockByHeight(chainHeight);
+            block.previousBlockHash = await SHA256(JSON.stringify(block)).toString();
+            block.height = newHeight;
+            block.hash = await SHA256(JSON.stringify(block)).toString();
+            block.time = new Date().getTime().toString().slice(0,-3);
+            self.height = newHeight;
+           }
+
+           else if(newHeight > 0){
              let previousBlock =await self.getBlockByHeight(chainHeight);
              block.previousBlockHash = previousBlock.hash;
              block.height = newHeight;
@@ -84,9 +94,15 @@ class Blockchain {
              block.time = new Date().getTime().toString().slice(0,-3);
              self.height = newHeight;
           }
-           self.chain.push(block);
-          
-           resolve(block);
+           
+            self.chain.push(block);
+            let errorLog = await self.validateChain();
+
+            if(errorLog[0])
+              console.log(errorLog[0]);
+            resolve(block);
+           
+           
           }
           catch{
              reject(Error("Invalid block created"));
@@ -136,7 +152,14 @@ class Blockchain {
             let initialTime = parseInt(message.split(':')[1]);
             let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
             let deltaTime = (currentTime - initialTime)/(1000*60);
-            let isVerified = await bitcoinMessage.verify(message, address, signature);
+
+            let isVerified;
+            try{
+                 isVerified = await bitcoinMessage.verify(message, address, signature);
+                }
+                catch{
+                    reject(Error("Verification failed"));
+                }
 
             if(deltaTime < 5 ){
               if(isVerified){
