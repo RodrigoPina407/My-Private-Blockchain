@@ -69,17 +69,18 @@ class Blockchain {
            let chainHeight = await self.getChainHeight();
            let newHeight = chainHeight + 1;
 
+          /* force an invalid block to test validateChain()
            if(newHeight === 2){
-             //force an invalid block to test validateChain()
+             
             let previousBlock =await self.getBlockByHeight(chainHeight);
             block.previousBlockHash = await SHA256(JSON.stringify(block)).toString();
             block.height = newHeight;
             block.hash = await SHA256(JSON.stringify(block)).toString();
             block.time = new Date().getTime().toString().slice(0,-3);
             self.height = newHeight;
-           }
+           }*/
 
-           else if(newHeight > 0){
+           if(newHeight > 0){
              let previousBlock =await self.getBlockByHeight(chainHeight);
              block.previousBlockHash = previousBlock.hash;
              block.height = newHeight;
@@ -95,11 +96,14 @@ class Blockchain {
              self.height = newHeight;
           }
            
-            self.chain.push(block);
+            self.chain.push(block);                     // push a block into the chain and validate
             let errorLog = await self.validateChain();
-
-            if(errorLog[0])
+           
+            if(errorLog[0]){
               console.log(errorLog[0]);
+              self.chain.pop(); // if there is an error pop the block from the chain
+              console.log(self.chain);
+            }
             resolve(block);
            
            
