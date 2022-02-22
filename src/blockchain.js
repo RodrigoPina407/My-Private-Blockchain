@@ -69,40 +69,35 @@ class Blockchain {
            let chainHeight = await self.getChainHeight();
            let newHeight = chainHeight + 1;
 
-          /* force an invalid block to test validateChain()
-           if(newHeight === 2){
+           //force an invalid block to test validateChain()
+          /* if(newHeight === 2){
              
-            let previousBlock =await self.getBlockByHeight(chainHeight);
             block.previousBlockHash = await SHA256(JSON.stringify(block)).toString();
-            block.height = newHeight;
-            block.hash = await SHA256(JSON.stringify(block)).toString();
-            block.time = new Date().getTime().toString().slice(0,-3);
-            self.height = newHeight;
-           }*/
+           }
 
+           else*/ 
            if(newHeight > 0){
-             let previousBlock =await self.getBlockByHeight(chainHeight);
+             let previousBlock = await self.getBlockByHeight(chainHeight);
              block.previousBlockHash = previousBlock.hash;
              block.height = newHeight;
-             block.hash = await SHA256(JSON.stringify(block)).toString();
              block.time = new Date().getTime().toString().slice(0,-3);
+             block.hash = SHA256(JSON.stringify(block)).toString();
              self.height = newHeight;
           }
           else{
              block.previousBlockHash = null;
              block.height = newHeight;
-             block.hash = await SHA256(JSON.stringify(block)).toString();
              block.time = new Date().getTime().toString().slice(0,-3);
+             block.hash = SHA256(JSON.stringify(block)).toString();
              self.height = newHeight;
           }
            
             self.chain.push(block);                     // push a block into the chain and validate
-            let errorLog = await self.validateChain();
-           
-            if(errorLog[0]){
+            let errorLog = await self.validateChain(); 
+
+            if(errorLog.length > 0){
               console.log(errorLog[0]);
               self.chain.pop(); // if there is an error pop the block from the chain
-              console.log(self.chain);
             }
             resolve(block);
            
@@ -190,7 +185,7 @@ class Blockchain {
     getBlockByHash(hash) {
         let self = this;
         return new Promise((resolve, reject) => {
-          let block = self.chain.filter(p => p.hash === hash)[0];
+          let block = self.chain.find(p => p.hash === hash);
           if(block){
               resolve(block);
           } else {
@@ -208,7 +203,7 @@ class Blockchain {
     getBlockByHeight(height) {
         let self = this;
         return new Promise((resolve, reject) => {
-            let block = self.chain.filter(p => p.height === height)[0];
+            let block = self.chain.find(p => p.height === height);
             if(block){
                 resolve(block);
             } else {
@@ -255,17 +250,19 @@ class Blockchain {
     validateChain() {
         let self = this;
         let errorLog = [];
-        return new Promise(async (resolve, reject) => {
-            self.chain.forEach((block,i) => {
-
-              if( block.validate() === false){
+        return new Promise((resolve, reject) => {
+            
+            self.chain.forEach(async (block,i) => {
+              let isValid = await block.validate();
+              if(!isValid){
                 errorLog.push({error: `Invalid Block: ${block.height}`});
               }
-              if( (block.height > 0) && (block.previousBlockHash != self.chain[block.height - 1].hash)){
-                errorLog.push({error: `Previous Block Hash does not match for Block: ${block.height}`});
-              }
 
+              if(block.height > 0 && block.previousBlockHash !== await self.getBlockByHeight(block.height - 1)){
+                errorLog.push({error: `Previous Block Hash invalid for Block: ${block.height}`});
+              }
             });
+
             resolve(errorLog);
 
         });
